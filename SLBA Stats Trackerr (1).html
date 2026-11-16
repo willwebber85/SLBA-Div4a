@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basketball League Manager & Live Scoring Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        hoop: {
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .tab-btn-active {
+            background-color: #f97316 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="h-full flex flex-col min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-hoop-500 selection:text-white">
+
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- App Logo & Name -->
+                <div class="flex items-center space-x-3">
+                    <div class="bg-gradient-to-tr from-hoop-600 to-amber-500 text-white p-2.5 rounded-xl shadow-lg shadow-hoop-500/20">
+                        <i class="fa-solid fa-basketball text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-base sm:text-lg text-white tracking-tight flex items-center gap-2">
+                            LEAGUE SCORESHEET <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-hoop-500/20 text-hoop-500 border border-hoop-500/30">PRO</span>
+                        </h1>
+                        <p class="text-xs text-slate-400 hidden sm:block">Roster Guardrails • Live Match Tracker • Season PPG Leaders</p>
+                    </div>
+                </div>
+
+                <!-- Global Utility Buttons -->
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <button onclick="pullDataFromGoogleSheets()" class="flex items-center space-x-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition shadow-md shadow-sky-900/30">
+                        <i class="fa-solid fa-cloud-arrow-down"></i>
+                        <span class="hidden sm:inline">Pull from Sheet</span>
+                    </button>
+                    <button onclick="openSyncModal()" class="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition shadow-md shadow-emerald-900/30">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span class="hidden sm:inline">Google Sheets Sync</span>
+                    </button>
+                    <button onclick="openClearDataModal()" class="flex items-center space-x-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-semibold px-3 py-2 rounded-xl transition">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span class="hidden sm:inline">Clear Local Data</span>
+                    </button>
+                    <button onclick="loadSampleDemoData()" class="text-slate-400 hover:text-amber-400 p-2 rounded-xl hover:bg-slate-800 transition" title="Restore Demo Teams & Players">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN NAVIGATION TABS BAR -->
+        <div class="bg-slate-900/80 border-t border-slate-800/80 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto flex items-center gap-2 py-2 overflow-x-auto">
+                <button id="nav-btn-scorer" onclick="switchTab('scorer')" class="tab-btn-active text-slate-300 hover:text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-stopwatch text-base"></i> Live Game Scorer
+                </button>
+                <button id="nav-btn-rosters" onclick="switchTab('rosters')" class="text-slate-300 hover:bg-slate-800 hover:text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-id-card text-base text-hoop-500"></i> Master Rosters & Teams
+                </button>
+                <button id="nav-btn-stats" onclick="switchTab('stats')" class="text-slate-300 hover:bg-slate-800 hover:text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-chart-line text-base text-emerald-400"></i> Season Standings & PPG
+                </button>
+                <button id="nav-btn-logs" onclick="switchTab('logs')" class="text-slate-300 hover:bg-slate-800 hover:text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-clipboard-list text-base text-sky-400"></i> Game Results & Logs
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- TAB 1: LIVE GAME SCORER -->
+        <section id="tab-scorer" class="space-y-6">
+
+            <!-- Fixture Setup Bar -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-hoop-500"></i> Match Fixture & Referee Setup
+                    </h2>
+                    <span class="text-xs text-slate-400 bg-slate-950 px-3 py-1 rounded-full border border-slate-800">
+                        Roster Guardrails: <strong class="text-emerald-400">Active</strong>
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Select Home Team</label>
+                        <select id="game-home-team" onchange="updateMatchTeams()" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-hoop-500">
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Select Away Team</label>
+                        <select id="game-away-team" onchange="updateMatchTeams()" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-hoop-500">
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Referee 1 (Crew Chief)</label>
+                        <input type="text" id="game-ref1" value="Steven Toms" oninput="updateScoreboardDisplay()" placeholder="e.g. Steven Toms" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-hoop-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Referee 2 (Umpire)</label>
+                        <input type="text" id="game-ref2" value="Maureen McNeill" oninput="updateScoreboardDisplay()" placeholder="e.g. Maureen McNeill" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-hoop-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800/60">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Game Venue</label>
+                        <input type="text" id="game-venue" value="Emirates Arena" oninput="updateScoreboardDisplay()" placeholder="e.g. Emirates Arena" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-hoop-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Match ID / Date</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="game-id" value="G-101" class="bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none">
+                            <input type="date" id="game-date" value="2026-10-05" class="bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Digital Scoreboard Banner -->
+            <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="text-center md:text-left flex-1">
+                        <span class="text-xs font-bold text-hoop-500 tracking-wider uppercase">Home Team</span>
+                        <h3 id="display-home-team-name" class="text-xl sm:text-2xl font-black text-white truncate">Home Team</h3>
+                        <div class="mt-2 text-5xl sm:text-6xl font-black text-white tracking-tight" id="display-home-score">0</div>
+                    </div>
+
+                    <div class="text-center px-4 py-2 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-1">
+                        <span class="text-xs font-extrabold text-amber-500 uppercase tracking-widest">LIVE MATCH</span>
+                        <div class="text-xl font-black text-slate-400">VS</div>
+                        <div id="display-venue" class="text-xs font-semibold text-slate-300">Emirates Arena</div>
+                        <div class="text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+                            <i class="fa-solid fa-whistle text-slate-500 mr-1"></i> Refs: <span id="display-refs" class="text-slate-200">Steven Toms / Maureen McNeill</span>
+                        </div>
+                    </div>
+
+                    <div class="text-center md:text-right flex-1">
+                        <span class="text-xs font-bold text-sky-400 tracking-wider uppercase">Away Team</span>
+                        <h3 id="display-away-team-name" class="text-xl sm:text-2xl font-black text-white truncate">Away Team</h3>
+                        <div class="mt-2 text-5xl sm:text-6xl font-black text-white tracking-tight" id="display-away-score">0</div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-center gap-3">
+                    <button onclick="finalizeAndLogGame()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-circle-check"></i> Finalize Match & Log Stats
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- HOME TEAM SCORESHEET -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h3 class="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-hoop-500"></span> <span id="home-table-title">Home Roster</span>
+                        </h3>
+                        <span id="home-roster-count" class="text-xs font-semibold bg-slate-950 text-slate-400 px-2.5 py-1 rounded-full border border-slate-800">0 Players Loaded</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px]">
+                                <tr>
+                                    <th class="p-2">Kit</th>
+                                    <th class="p-2">Player</th>
+                                    <th class="p-2 text-center">Status</th>
+                                    <th class="p-2 text-center">PTS</th>
+                                    <th class="p-2 text-center">Fouls</th>
+                                    <th class="p-2 text-right">Scoring Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="home-table-body" class="divide-y divide-slate-800">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- AWAY TEAM SCORESHEET -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h3 class="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-sky-400"></span> <span id="away-table-title">Away Roster</span>
+                        </h3>
+                        <span id="away-roster-count" class="text-xs font-semibold bg-slate-950 text-slate-400 px-2.5 py-1 rounded-full border border-slate-800">0 Players Loaded</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px]">
+                                <tr>
+                                    <th class="p-2">Kit</th>
+                                    <th class="p-2">Player</th>
+                                    <th class="p-2 text-center">Status</th>
+                                    <th class="p-2 text-center">PTS</th>
+                                    <th class="p-2 text-center">Fouls</th>
+                                    <th class="p-2 text-right">Scoring Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="away-table-body" class="divide-y divide-slate-800">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- TAB 2: MASTER ROSTERS -->
+        <section id="tab-rosters" class="hidden space-y-6">
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-id-card text-hoop-500"></i> League Master Roster Database
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Players must be pre-registered here prior to game tip-off. Unregistered players will be locked out of game scorecards.
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap">
+                    <select id="roster-team-filter" onchange="renderMasterRosterTable()" class="bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none">
+                        <option value="ALL">All League Teams</option>
+                    </select>
+                    <button onclick="openAddTeamModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-people-group text-hoop-500"></i> + Add Team
+                    </button>
+                    <button onclick="openAddPlayerModal()" class="bg-hoop-600 hover:bg-hoop-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-2 shadow-lg shadow-hoop-600/20">
+                        <i class="fa-solid fa-user-plus"></i> Register New Player
+                    </button>
+                </div>
+            </div>
+
+            <div id="rosters-empty-notice" class="hidden bg-slate-900 border border-amber-500/30 rounded-2xl p-8 text-center space-y-3">
+                <div class="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center mx-auto text-xl">
+                    <i class="fa-solid fa-folder-open"></i>
+                </div>
+                <h3 class="text-base font-bold text-white">No League Teams or Players Found</h3>
+                <p class="text-xs text-slate-400 max-w-md mx-auto">
+                    Your local database is currently clean and empty. Click below to add your first team or pull from Google Sheets.
+                </p>
+                <div class="flex justify-center gap-3 pt-2">
+                    <button onclick="openAddTeamModal()" class="bg-hoop-600 hover:bg-hoop-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
+                        + Add Your First Team
+                    </button>
+                    <button onclick="pullDataFromGoogleSheets()" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">
+                        Pull from Google Sheets
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px]">
+                            <tr>
+                                <th class="p-3">Reg # (ID)</th>
+                                <th class="p-3">Player Name</th>
+                                <th class="p-3">Team</th>
+                                <th class="p-3 text-center">Kit #</th>
+                                <th class="p-3 text-center">Status</th>
+                                <th class="p-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="master-roster-tbody" class="divide-y divide-slate-800">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- TAB 3: SEASON STATS & PPG -->
+        <section id="tab-stats" class="hidden space-y-6">
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-amber-400"></i> Season Scoring Leaders & Player PPG
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Calculated across all logged matches. DNP (Did Not Play) games are excluded from PPG calculations.
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="text" id="stats-search" oninput="renderSeasonStatsTable()" placeholder="Search player name..." class="bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none">
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px]">
+                            <tr>
+                                <th class="p-3">Rank</th>
+                                <th class="p-3">Player Name</th>
+                                <th class="p-3">Team Name</th>
+                                <th class="p-3 text-center">Active GP</th>
+                                <th class="p-3 text-center">DNP</th>
+                                <th class="p-3 text-center">Total PTS</th>
+                                <th class="p-3 text-center">Total Fouls</th>
+                                <th class="p-3 text-right font-bold text-amber-400">PPG Average</th>
+                            </tr>
+                        </thead>
+                        <tbody id="season-stats-tbody" class="divide-y divide-slate-800">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- TAB 4: GAME RESULTS & LOGS -->
+        <section id="tab-logs" class="hidden space-y-6">
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-list text-sky-400"></i> Game Results & Official Match Logs
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Comprehensive archive of all finalized match scores, assigned referees, venues, and team box scores.
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="text" id="logs-search" oninput="renderGameLogsTable()" placeholder="Search team or game ID..." class="bg-slate-950 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs focus:outline-none">
+                </div>
+            </div>
+
+            <div id="game-logs-container" class="grid grid-cols-1 gap-4">
+                <!-- Dynamically populated match log cards -->
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- MODAL: MATCH BOX SCORE DETAILS -->
+    <div id="modal-box-score" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                    <h3 id="modal-boxscore-title" class="font-bold text-white text-base">Match Box Score</h3>
+                    <p id="modal-boxscore-sub" class="text-xs text-slate-400"></p>
+                </div>
+                <button onclick="closeBoxScoreModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="modal-boxscore-content">
+                <!-- Dynamically populated box score tables -->
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-slate-800">
+                <button onclick="closeBoxScoreModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-4 py-2 rounded-xl transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTER NEW PLAYER -->
+    <div id="modal-add-player" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-user-plus text-hoop-500"></i> Register New League Player
+                </h3>
+                <button onclick="closeAddPlayerModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Assigned Team</label>
+                    <select id="modal-player-team" class="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none">
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Player Full Name</label>
+                    <input type="text" id="modal-player-name" placeholder="e.g. Fraser Murray" class="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Registration # (ID)</label>
+                        <input type="text" id="modal-player-reg" placeholder="ME219900" class="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Default Kit #</label>
+                        <input type="number" id="modal-player-kit" placeholder="11" class="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button onclick="closeAddPlayerModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white">Cancel</button>
+                <button onclick="saveNewPlayerToMaster()" class="bg-hoop-600 hover:bg-hoop-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Save to Master Roster</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD NEW TEAM -->
+    <div id="modal-add-team" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-people-group text-hoop-500"></i> Add New League Team
+                </h3>
+                <button onclick="closeAddTeamModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Team Name</label>
+                <input type="text" id="modal-new-team-name" placeholder="e.g. Falkirk Fury" class="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none">
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button onclick="closeAddTeamModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white">Cancel</button>
+                <button onclick="saveNewTeam()" class="bg-hoop-600 hover:bg-hoop-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Create Team</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: GOOGLE SHEETS SYNC -->
+    <div id="modal-sync" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-emerald-400 flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel"></i> Google Sheets Web App Sync Setup
+                </h3>
+                <button onclick="closeSyncModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <p class="text-xs text-slate-300 leading-relaxed">
+                When synced, registering players, creating teams, and finalizing games in this app will <strong>automatically push rows directly into your Google Sheet</strong> (<code class="text-emerald-400 font-mono">Rosters</code>, <code class="text-emerald-400 font-mono">Games</code>, and <code class="text-emerald-400 font-mono">Match_Player_Stats</code> tabs).
+            </p>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Google Apps Script Web App URL</label>
+                <input type="text" id="apps-script-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button onclick="closeSyncModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white">Close</button>
+                <button onclick="saveSyncUrl()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Save Web App URL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CLEAR LOCAL DATA CONFIRMATION -->
+    <div id="modal-clear-data" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-rose-400 flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Clear All Local App Data?
+                </h3>
+                <button onclick="closeClearDataModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <p class="text-xs text-slate-300 leading-relaxed">
+                This will wipe cached rosters and match logs stored in your browser and automatically re-pull fresh data directly from your Google Sheet.
+            </p>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button onclick="closeClearDataModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white">Cancel</button>
+                <button onclick="executeWipeAllLocalData()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">Clear Local & Sync</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        const defaultDemoRosters = [
+            { regNum: "ME212997", name: "John McInally", team: "Glasgow Storm", kitNum: 12, status: "Active" },
+            { regNum: "ME213450", name: "Calum Campbell", team: "Glasgow Storm", kitNum: 7, status: "Active" },
+            { regNum: "ME214892", name: "David Fraser", team: "Glasgow Storm", kitNum: 15, status: "Active" },
+            { regNum: "ME215001", name: "Ross Henderson", team: "Glasgow Storm", kitNum: 10, status: "Active" },
+            { regNum: "ME220112", name: "Stuart Robertson", team: "Edinburgh Kings", kitNum: 4, status: "Active" },
+            { regNum: "ME220543", name: "Alistair Stewart", team: "Edinburgh Kings", kitNum: 9, status: "Active" },
+            { regNum: "ME220889", name: "Marc Mitchell", team: "Edinburgh Kings", kitNum: 11, status: "Active" },
+            { regNum: "ME230101", name: "Euan Kerr", team: "St Mirren", kitNum: 8, status: "Active" },
+            { regNum: "ME230205", name: "Lewis Hamilton", team: "St Mirren", kitNum: 23, status: "Active" }
+        ];
+
+        const defaultDemoTeams = ["Glasgow Storm", "Edinburgh Kings", "St Mirren"];
+
+        const defaultDemoLogs = [
+            {
+                gameId: "G-100",
+                date: "2026-09-28",
+                venue: "Emirates Arena",
+                ref1: "Steven Toms",
+                ref2: "Maureen McNeill",
+                homeTeam: "Glasgow Storm",
+                awayTeam: "Edinburgh Kings",
+                homeScore: 66,
+                awayScore: 54,
+                playerStats: [
+                    { regNum: "ME212997", playerName: "John McInally", teamName: "Glasgow Storm", totalPts: 22, fouls: 2, played: true },
+                    { regNum: "ME213450", playerName: "Calum Campbell", teamName: "Glasgow Storm", totalPts: 18, fouls: 3, played: true },
+                    { regNum: "ME214892", playerName: "David Fraser", teamName: "Glasgow Storm", totalPts: 26, fouls: 1, played: true },
+                    { regNum: "ME215001", playerName: "Ross Henderson", teamName: "Glasgow Storm", totalPts: 0, fouls: 0, played: false },
+                    { regNum: "ME220112", playerName: "Stuart Robertson", teamName: "Edinburgh Kings", totalPts: 24, fouls: 2, played: true },
+                    { regNum: "ME220543", playerName: "Alistair Stewart", teamName: "Edinburgh Kings", totalPts: 30, fouls: 4, played: true }
+                ]
+            }
+        ];
+
+        let masterRosters = JSON.parse(localStorage.getItem('league_master_rosters')) || [];
+        let seasonMatchLogs = JSON.parse(localStorage.getItem('league_season_logs')) || [];
+        let leagueTeams = JSON.parse(localStorage.getItem('league_teams_list')) || [];
+
+        let activeHomePlayers = [];
+        let activeAwayPlayers = [];
+
+        window.onload = function() {
+            populateTeamDropdowns();
+            updateMatchTeams();
+            renderMasterRosterTable();
+            renderSeasonStatsTable();
+            renderGameLogsTable();
+            
+            const savedUrl = localStorage.getItem('league_apps_script_url') || '';
+            document.getElementById('apps-script-url').value = savedUrl;
+
+            if (savedUrl) {
+                pullDataFromGoogleSheets(true);
+            }
+        };
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            const bgColors = {
+                success: 'bg-emerald-600 text-white border-emerald-400',
+                error: 'bg-rose-600 text-white border-rose-400',
+                info: 'bg-sky-600 text-white border-sky-400'
+            };
+
+            toast.className = `px-4 py-3 rounded-xl shadow-2xl border text-xs font-semibold transition-all transform translate-y-2 opacity-0 flex items-center gap-2 pointer-events-auto min-w-[280px] ${bgColors[type] || bgColors.info}`;
+            
+            const icons = {
+                success: '<i class="fa-solid fa-circle-check"></i>',
+                error: '<i class="fa-solid fa-circle-exclamation"></i>',
+                info: '<i class="fa-solid fa-circle-info"></i>'
+            };
+
+            toast.innerHTML = `${icons[type] || icons.info} <span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function pullDataFromGoogleSheets(isAutoOnLoad = false) {
+            const url = localStorage.getItem('league_apps_script_url');
+            if (!url || !url.trim()) {
+                if (!isAutoOnLoad) showToast("Please configure your Google Sheets Sync URL first.", "error");
+                return;
+            }
+
+            const cleanUrl = url.trim();
+            if (cleanUrl.includes('/dev')) {
+                showToast("Web App URL contains '/dev'. Change to '/exec' for public sync.", "error");
+                return;
+            }
+
+            if (!isAutoOnLoad) showToast("Connecting to Google Sheets...", "info");
+
+            fetch(cleanUrl, { method: 'GET', redirect: 'follow' })
+                .then(res => res.text())
+                .then(text => {
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        console.error("Raw Google response:", text);
+                        if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+                            showToast("Google error: You must publish a NEW VERSION deployment in Apps Script.", "error");
+                        } else {
+                            showToast("Failed to parse response from Google Sheets.", "error");
+                        }
+                        return;
+                    }
+
+                    if (data.result === "success") {
+                        const fetchedTeams = new Set();
+                        if (data.teams && Array.isArray(data.teams)) {
+                            data.teams.forEach(t => { if (t && t.trim()) fetchedTeams.add(t.trim()); });
+                        }
+                        if (data.rosters && Array.isArray(data.rosters)) {
+                            data.rosters.forEach(r => { if (r.team && r.team.trim()) fetchedTeams.add(r.team.trim()); });
+                        }
+                        leagueTeams = Array.from(fetchedTeams);
+                        localStorage.setItem('league_teams_list', JSON.stringify(leagueTeams));
+
+                        if (data.rosters && Array.isArray(data.rosters)) {
+                            masterRosters = data.rosters;
+                            localStorage.setItem('league_master_rosters', JSON.stringify(masterRosters));
+                        }
+
+                        if (data.seasonLogs && Array.isArray(data.seasonLogs)) {
+                            seasonMatchLogs = data.seasonLogs;
+                            localStorage.setItem('league_season_logs', JSON.stringify(seasonMatchLogs));
+                        }
+
+                        populateTeamDropdowns();
+                        updateMatchTeams();
+                        renderMasterRosterTable();
+                        renderSeasonStatsTable();
+                        renderGameLogsTable();
+
+                        showToast(`Pulled from Sheet! Loaded ${leagueTeams.length} teams & ${masterRosters.length} players.`, "success");
+                    } else {
+                        showToast("Sheet error: " + (data.message || "Unknown error"), "error");
+                    }
+                })
+                .catch(err => {
+                    console.error("Sync error:", err);
+                    if (!isAutoOnLoad) showToast("Connection failed. Check Web App URL & permissions.", "error");
+                });
+        }
+
+        function syncPayloadToGoogleSheet(action, data, label) {
+            const url = localStorage.getItem('league_apps_script_url');
+            if (!url) {
+                showToast(`${label} saved locally. (Connect Google Sheets URL to auto-sync)`, 'info');
+                return;
+            }
+
+            fetch(url, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, data })
+            }).then(() => {
+                showToast(`${label} synced to Google Sheets!`, 'success');
+            }).catch(err => {
+                console.error('Sync failed:', err);
+                showToast(`Failed to sync ${label} to Google Sheets.`, 'error');
+            });
+        }
+
+        function switchTab(tabName) {
+            const tabs = ['scorer', 'rosters', 'stats', 'logs'];
+            tabs.forEach(t => {
+                const sec = document.getElementById(`tab-${t}`);
+                const btn = document.getElementById(`nav-btn-${t}`);
+                if (sec) sec.classList.add('hidden');
+                if (btn) btn.classList.remove('tab-btn-active');
+            });
+
+            const targetSec = document.getElementById(`tab-${tabName}`);
+            const targetBtn = document.getElementById(`nav-btn-${tabName}`);
+            if (targetSec) targetSec.classList.remove('hidden');
+            if (targetBtn) targetBtn.classList.add('tab-btn-active');
+
+            if (tabName === 'rosters') renderMasterRosterTable();
+            if (tabName === 'stats') renderSeasonStatsTable();
+            if (tabName === 'logs') renderGameLogsTable();
+        }
+
+        function populateTeamDropdowns() {
+            const homeSelect = document.getElementById('game-home-team');
+            const awaySelect = document.getElementById('game-away-team');
+            const masterFilter = document.getElementById('roster-team-filter');
+            const modalTeam = document.getElementById('modal-player-team');
+
+            const currentHome = homeSelect ? homeSelect.value : '';
+            const currentAway = awaySelect ? awaySelect.value : '';
+
+            if (homeSelect) homeSelect.innerHTML = '';
+            if (awaySelect) awaySelect.innerHTML = '';
+            if (masterFilter) masterFilter.innerHTML = '<option value="ALL">All League Teams</option>';
+            if (modalTeam) modalTeam.innerHTML = '';
+
+            if (leagueTeams.length === 0) {
+                if (homeSelect) homeSelect.innerHTML = '<option value="">No Teams Created</option>';
+                if (awaySelect) awaySelect.innerHTML = '<option value="">No Teams Created</option>';
+                if (modalTeam) modalTeam.innerHTML = '<option value="">No Teams Created</option>';
+                return;
+            }
+
+            leagueTeams.forEach((team, idx) => {
+                if (homeSelect) homeSelect.innerHTML += `<option value="${team}" ${team === currentHome || idx === 0 ? 'selected' : ''}>${team}</option>`;
+                if (awaySelect) awaySelect.innerHTML += `<option value="${team}" ${team === currentAway || (idx === 1 || idx === leagueTeams.length - 1) ? 'selected' : ''}>${team}</option>`;
+                if (masterFilter) masterFilter.innerHTML += `<option value="${team}">${team}</option>`;
+                if (modalTeam) modalTeam.innerHTML += `<option value="${team}">${team}</option>`;
+            });
+        }
+
+        function updateMatchTeams() {
+            const homeTeamSelect = document.getElementById('game-home-team');
+            const awayTeamSelect = document.getElementById('game-away-team');
+
+            const homeTeam = homeTeamSelect ? homeTeamSelect.value : '';
+            const awayTeam = awayTeamSelect ? awayTeamSelect.value : '';
+
+            document.getElementById('display-home-team-name').innerText = homeTeam || "Home Team";
+            document.getElementById('display-away-team-name').innerText = awayTeam || "Away Team";
+            document.getElementById('home-table-title').innerText = `${homeTeam || 'Home'} Roster`;
+            document.getElementById('away-table-title').innerText = `${awayTeam || 'Away'} Roster`;
+
+            activeHomePlayers = masterRosters
+                .filter(p => p.team === homeTeam)
+                .map(p => ({ regNum: p.regNum, name: p.name, kitNum: p.kitNum, totalPts: 0, fouls: 0, played: false }));
+
+            activeAwayPlayers = masterRosters
+                .filter(p => p.team === awayTeam)
+                .map(p => ({ regNum: p.regNum, name: p.name, kitNum: p.kitNum, totalPts: 0, fouls: 0, played: false }));
+
+            renderTeamScoresheet('home');
+            renderTeamScoresheet('away');
+            updateScoreboardDisplay();
+        }
+
+        function renderTeamScoresheet(side) {
+            const players = side === 'home' ? activeHomePlayers : activeAwayPlayers;
+            const tbody = document.getElementById(`${side}-table-body`);
+            const countEl = document.getElementById(`${side}-roster-count`);
+
+            if (countEl) countEl.innerText = `${players.length} Players Loaded`;
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            if (players.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="p-4 text-center text-slate-500 italic">
+                            No registered players found for this team on the Master Roster.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            players.forEach((p, idx) => {
+                const statusBadge = p.played
+                    ? `<button onclick="togglePlayerPlayed('${side}', ${idx})" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold text-[10px]">PLAYED</button>`
+                    : `<button onclick="togglePlayerPlayed('${side}', ${idx})" class="bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded-full font-semibold text-[10px]">DNP</button>`;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-2 font-bold text-hoop-500">#${p.kitNum}</td>
+                        <td class="p-2 font-semibold text-slate-100">
+                            ${p.name}
+                            <div class="text-[10px] text-slate-500">${p.regNum}</div>
+                        </td>
+                        <td class="p-2 text-center">${statusBadge}</td>
+                        <td class="p-2 text-center font-extrabold text-white text-sm">${p.totalPts}</td>
+                        <td class="p-2 text-center font-bold ${p.fouls >= 5 ? 'text-rose-500' : 'text-slate-300'}">${p.fouls}</td>
+                        <td class="p-2 text-right space-x-1 whitespace-nowrap">
+                            <button onclick="addPlayerPts('${side}', ${idx}, -1)" class="bg-slate-800 hover:bg-slate-700 text-rose-400 border border-slate-700 font-bold px-2 py-1 rounded-lg" title="Deduct 1 Point">-1</button>
+                            <button onclick="addPlayerPts('${side}', ${idx}, 1)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-2 py-1 rounded-lg">+1</button>
+                            <button onclick="addPlayerPts('${side}', ${idx}, 2)" class="bg-hoop-600 hover:bg-hoop-500 text-white font-bold px-2.5 py-1 rounded-lg shadow">+2</button>
+                            <button onclick="addPlayerPts('${side}', ${idx}, 3)" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-2 py-1 rounded-lg shadow">+3</button>
+                            <button onclick="addPlayerFoul('${side}', ${idx})" class="bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 font-bold px-2 py-1 rounded-lg">Foul</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function togglePlayerPlayed(side, idx) {
+            const list = side === 'home' ? activeHomePlayers : activeAwayPlayers;
+            list[idx].played = !list[idx].played;
+            renderTeamScoresheet(side);
+        }
+
+        function addPlayerPts(side, idx, pts) {
+            const list = side === 'home' ? activeHomePlayers : activeAwayPlayers;
+            list[idx].totalPts = Math.max(0, list[idx].totalPts + pts);
+            list[idx].played = true;
+            renderTeamScoresheet(side);
+            updateScoreboardDisplay();
+        }
+
+        function addPlayerFoul(side, idx) {
+            const list = side === 'home' ? activeHomePlayers : activeAwayPlayers;
+            list[idx].fouls += 1;
+            list[idx].played = true;
+            renderTeamScoresheet(side);
+        }
+
+        function updateScoreboardDisplay() {
+            const homeScore = activeHomePlayers.reduce((sum, p) => sum + p.totalPts, 0);
+            const awayScore = activeAwayPlayers.reduce((sum, p) => sum + p.totalPts, 0);
+
+            document.getElementById('display-home-score').innerText = homeScore;
+            document.getElementById('display-away-score').innerText = awayScore;
+
+            const venue = document.getElementById('game-venue').value || 'TBD Venue';
+            const ref1 = document.getElementById('game-ref1').value || 'Unassigned';
+            const ref2 = document.getElementById('game-ref2').value || 'Unassigned';
+
+            document.getElementById('display-venue').innerText = venue;
+            document.getElementById('display-refs').innerText = `${ref1} / ${ref2}`;
+        }
+
+        function finalizeAndLogGame() {
+            const homeTeam = document.getElementById('game-home-team').value;
+            const awayTeam = document.getElementById('game-away-team').value;
+            const gameId = document.getElementById('game-id').value || `G-${Date.now().toString().slice(-4)}`;
+            const date = document.getElementById('game-date').value;
+            const venue = document.getElementById('game-venue').value;
+            const ref1 = document.getElementById('game-ref1').value;
+            const ref2 = document.getElementById('game-ref2').value;
+
+            if (!homeTeam || !awayTeam || homeTeam === awayTeam) {
+                showToast("Please select two distinct home and away teams.", "error");
+                return;
+            }
+
+            const homeScore = activeHomePlayers.reduce((sum, p) => sum + p.totalPts, 0);
+            const awayScore = activeAwayPlayers.reduce((sum, p) => sum + p.totalPts, 0);
+
+            const allPlayerStats = [
+                ...activeHomePlayers.map(p => ({ ...p, teamName: homeTeam })),
+                ...activeAwayPlayers.map(p => ({ ...p, teamName: awayTeam }))
+            ];
+
+            const matchLog = {
+                gameId,
+                date,
+                venue,
+                ref1,
+                ref2,
+                homeTeam,
+                awayTeam,
+                homeScore,
+                awayScore,
+                playerStats: allPlayerStats
+            };
+
+            seasonMatchLogs.push(matchLog);
+            localStorage.setItem('league_season_logs', JSON.stringify(seasonMatchLogs));
+
+            syncPayloadToGoogleSheet('finalizeGame', matchLog, `Match ${gameId}`);
+            renderGameLogsTable();
+            switchTab('logs');
+        }
+
+        function renderMasterRosterTable() {
+            const tbody = document.getElementById('master-roster-tbody');
+            const emptyNotice = document.getElementById('rosters-empty-notice');
+            const filterEl = document.getElementById('roster-team-filter');
+            const filter = filterEl ? filterEl.value : 'ALL';
+
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            let filtered = masterRosters;
+            if (filter !== 'ALL') {
+                filtered = masterRosters.filter(p => p.team === filter);
+            }
+
+            if (masterRosters.length === 0) {
+                if (emptyNotice) emptyNotice.classList.remove('hidden');
+            } else {
+                if (emptyNotice) emptyNotice.classList.add('hidden');
+            }
+
+            if (filtered.length === 0 && masterRosters.length > 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500 italic">No players registered under team "${filter}".</td></tr>`;
+                return;
+            }
+
+            filtered.forEach((p) => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-3 font-mono text-slate-400">${p.regNum}</td>
+                        <td class="p-3 font-bold text-white">${p.name}</td>
+                        <td class="p-3 text-slate-300">${p.team}</td>
+                        <td class="p-3 text-center font-bold text-hoop-500">#${p.kitNum}</td>
+                        <td class="p-3 text-center">
+                            <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                Active
+                            </span>
+                        </td>
+                        <td class="p-3 text-right">
+                            <button onclick="deletePlayerFromMaster('${p.regNum}')" class="text-rose-400 hover:text-rose-300 p-1" title="Delete player">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function deletePlayerFromMaster(regNum) {
+            if (confirm(`Remove player reg #${regNum} from master roster?`)) {
+                masterRosters = masterRosters.filter(p => p.regNum !== regNum);
+                localStorage.setItem('league_master_rosters', JSON.stringify(masterRosters));
+                renderMasterRosterTable();
+                updateMatchTeams();
+                showToast(`Player #${regNum} removed from roster`, 'info');
+            }
+        }
+
+        function renderSeasonStatsTable() {
+            const tbody = document.getElementById('season-stats-tbody');
+            const searchEl = document.getElementById('stats-search');
+            const searchQuery = searchEl ? searchEl.value.toLowerCase() : '';
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const playerStatsMap = {};
+
+            masterRosters.forEach(p => {
+                playerStatsMap[p.regNum] = {
+                    regNum: p.regNum,
+                    name: p.name,
+                    team: p.team,
+                    activeGP: 0,
+                    dnpCount: 0,
+                    totalPts: 0,
+                    totalFouls: 0
+                };
+            });
+
+            seasonMatchLogs.forEach(log => {
+                log.playerStats.forEach(st => {
+                    if (!playerStatsMap[st.regNum]) {
+                        playerStatsMap[st.regNum] = {
+                            regNum: st.regNum,
+                            name: st.playerName || st.name,
+                            team: st.teamName || st.team,
+                            activeGP: 0,
+                            dnpCount: 0,
+                            totalPts: 0,
+                            totalFouls: 0
+                        };
+                    }
+                    if (st.played) {
+                        playerStatsMap[st.regNum].activeGP += 1;
+                        playerStatsMap[st.regNum].totalPts += (st.totalPts || 0);
+                        playerStatsMap[st.regNum].totalFouls += (st.fouls || 0);
+                    } else {
+                        playerStatsMap[st.regNum].dnpCount += 1;
+                    }
+                });
+            });
+
+            let statsArray = Object.values(playerStatsMap);
+            if (searchQuery) {
+                statsArray = statsArray.filter(p => 
+                    p.name.toLowerCase().includes(searchQuery) ||
+                    p.team.toLowerCase().includes(searchQuery) ||
+                    p.regNum.toLowerCase().includes(searchQuery)
+                );
+            }
+
+            statsArray.forEach(p => {
+                p.ppg = p.activeGP > 0 ? (p.totalPts / p.activeGP).toFixed(1) : "0.0";
+            });
+
+            statsArray.sort((a, b) => parseFloat(b.ppg) - parseFloat(a.ppg) || b.totalPts - a.totalPts);
+
+            if (statsArray.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-500 italic">No player stats recorded yet.</td></tr>`;
+                return;
+            }
+
+            statsArray.forEach((p, idx) => {
+                const rankBadge = idx === 0 ? '🏆 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : `#${idx + 1}`;
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="p-3 font-bold ${idx < 3 ? 'text-amber-400' : 'text-slate-400'}">${rankBadge}</td>
+                        <td class="p-3 font-bold text-white">${p.name} <span class="text-[10px] text-slate-500 block font-normal">${p.regNum}</span></td>
+                        <td class="p-3 text-slate-300">${p.team}</td>
+                        <td class="p-3 text-center font-semibold text-emerald-400">${p.activeGP}</td>
+                        <td class="p-3 text-center text-slate-500">${p.dnpCount}</td>
+                        <td class="p-3 text-center font-bold text-white">${p.totalPts}</td>
+                        <td class="p-3 text-center text-slate-400">${p.totalFouls}</td>
+                        <td class="p-3 text-right font-black text-amber-400 text-sm">${p.ppg}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderGameLogsTable() {
+            const container = document.getElementById('game-logs-container');
+            const searchEl = document.getElementById('logs-search');
+            const query = searchEl ? searchEl.value.toLowerCase() : '';
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            let logs = [...seasonMatchLogs];
+            if (query) {
+                logs = logs.filter(g => 
+                    g.gameId.toLowerCase().includes(query) ||
+                    g.homeTeam.toLowerCase().includes(query) ||
+                    g.awayTeam.toLowerCase().includes(query) ||
+                    (g.venue && g.venue.toLowerCase().includes(query))
+                );
+            }
+
+            if (logs.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400">
+                        <i class="fa-solid fa-folder-open text-3xl mb-2 text-slate-600 block"></i>
+                        No recorded match logs found. Finalize a match in the Live Scorer tab to archive it here.
+                    </div>
+                `;
+                return;
+            }
+
+            logs.reverse().forEach(g => {
+                const homeWin = g.homeScore > g.awayScore;
+                const awayWin = g.awayScore > g.homeScore;
+
+                container.innerHTML += `
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl hover:border-slate-700 transition flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="space-y-1 flex-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="bg-hoop-500/20 text-hoop-500 border border-hoop-500/30 text-[10px] font-black px-2 py-0.5 rounded-md font-mono">${g.gameId}</span>
+                                <span class="text-xs text-slate-400"><i class="fa-regular fa-calendar mr-1"></i>${g.date || 'Undated'}</span>
+                                <span class="text-xs text-slate-400"><i class="fa-solid fa-location-dot mr-1 text-rose-500"></i>${g.venue || 'N/A'}</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 pt-2 max-w-md">
+                                <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">
+                                    <span class="font-bold text-xs sm:text-sm ${homeWin ? 'text-amber-400' : 'text-slate-200'}">${g.homeTeam}</span>
+                                    <span class="font-black text-base sm:text-lg text-white ml-2">${g.homeScore}</span>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">
+                                    <span class="font-bold text-xs sm:text-sm ${awayWin ? 'text-amber-400' : 'text-slate-200'}">${g.awayTeam}</span>
+                                    <span class="font-black text-base sm:text-lg text-white ml-2">${g.awayScore}</span>
+                                </div>
+                            </div>
+
+                            <div class="text-[11px] text-slate-400 pt-1">
+                                <i class="fa-solid fa-whistle text-slate-500 mr-1"></i> Referees: <strong class="text-slate-300">${g.ref1 || 'Unassigned'}</strong> (Crew Chief) / <strong class="text-slate-300">${g.ref2 || 'Unassigned'}</strong> (Umpire)
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 self-start md:self-center">
+                            <button onclick="viewMatchBoxScore('${g.gameId}')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+                                <i class="fa-solid fa-list-check text-hoop-500"></i> View Box Score
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function viewMatchBoxScore(gameId) {
+            const game = seasonMatchLogs.find(g => g.gameId === gameId);
+            if (!game) return;
+
+            document.getElementById('modal-boxscore-title').innerText = `${game.homeTeam} vs ${game.awayTeam} (${game.homeScore} - ${game.awayScore})`;
+            document.getElementById('modal-boxscore-sub').innerText = `Game ID: ${game.gameId} | Date: ${game.date || 'N/A'} | Venue: ${game.venue || 'N/A'} | Referees: ${game.ref1 || 'Unassigned'} / ${game.ref2 || 'Unassigned'}`;
+
+            const container = document.getElementById('modal-boxscore-content');
+            container.innerHTML = '';
+
+            const homeStats = (game.playerStats || []).filter(s => (s.teamName || s.team) === game.homeTeam);
+            const awayStats = (game.playerStats || []).filter(s => (s.teamName || s.team) === game.awayTeam);
+
+            const renderTeamTable = (teamName, stats, isHome) => {
+                let rowsHtml = '';
+                if (stats.length === 0) {
+                    rowsHtml = `<tr><td colspan="5" class="p-3 text-center text-slate-500 italic">No player stats logged.</td></tr>`;
+                } else {
+                    stats.forEach(s => {
+                        const statusTag = s.played ? `<span class="text-emerald-400 font-bold text-[10px]">PLAYED</span>` : `<span class="text-slate-500 text-[10px]">DNP</span>`;
+                        rowsHtml += `
+                            <tr class="border-b border-slate-800/60">
+                                <td class="p-2 font-bold text-hoop-500">#${s.kitNum}</td>
+                                <td class="p-2 text-slate-200 font-medium">${s.playerName || s.name}</td>
+                                <td class="p-2 text-center">${statusTag}</td>
+                                <td class="p-2 text-center font-bold text-white">${s.totalPts}</td>
+                                <td class="p-2 text-center font-bold ${s.fouls >= 5 ? 'text-rose-500' : 'text-slate-400'}">${s.fouls}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                return `
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                        <h4 class="font-bold text-xs uppercase tracking-wider ${isHome ? 'text-hoop-500' : 'text-sky-400'} flex items-center justify-between">
+                            <span>${teamName}</span>
+                            <span class="text-white text-sm font-black">${isHome ? game.homeScore : game.awayScore} PTS</span>
+                        </h4>
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-900 text-slate-400 text-[10px] uppercase">
+                                <tr>
+                                    <th class="p-2">Kit</th>
+                                    <th class="p-2">Player</th>
+                                    <th class="p-2 text-center">Status</th>
+                                    <th class="p-2 text-center">PTS</th>
+                                    <th class="p-2 text-center">Fouls</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            };
+
+            container.innerHTML = renderTeamTable(game.homeTeam, homeStats, true) + renderTeamTable(game.awayTeam, awayStats, false);
+
+            document.getElementById('modal-box-score').classList.remove('hidden');
+        }
+
+        function closeBoxScoreModal() {
+            document.getElementById('modal-box-score').classList.add('hidden');
+        }
+
+        function openAddTeamModal() { document.getElementById('modal-add-team').classList.remove('hidden'); }
+        function closeAddTeamModal() { document.getElementById('modal-add-team').classList.add('hidden'); }
+
+        function getTeamId(teamName) {
+            let index = leagueTeams.indexOf(teamName);
+            if (index === -1) index = leagueTeams.length;
+            return `T-${String(index + 1).padStart(2, '0')}`;
+        }
+
+        function saveNewTeam() {
+            const input = document.getElementById('modal-new-team-name');
+            const teamName = input ? input.value.trim() : '';
+            if (!teamName) return showToast("Please enter a valid team name.", "error");
+            if (leagueTeams.includes(teamName)) return showToast("Team already exists.", "error");
+
+            leagueTeams.push(teamName);
+            localStorage.setItem('league_teams_list', JSON.stringify(leagueTeams));
+
+            const teamId = getTeamId(teamName);
+            syncPayloadToGoogleSheet('addTeam', { teamId, teamName }, `Team "${teamName}" (${teamId})`);
+
+            if (input) input.value = '';
+            closeAddTeamModal();
+            populateTeamDropdowns();
+            updateMatchTeams();
+            renderMasterRosterTable();
+        }
+
+        function openAddPlayerModal() { document.getElementById('modal-add-player').classList.remove('hidden'); }
+        function closeAddPlayerModal() { document.getElementById('modal-add-player').classList.add('hidden'); }
+
+        function saveNewPlayerToMaster() {
+            const team = document.getElementById('modal-player-team').value;
+            const name = document.getElementById('modal-player-name').value.trim();
+            const regNum = document.getElementById('modal-player-reg').value.trim() || `ME${Math.floor(100000 + Math.random() * 900000)}`;
+            const kitNum = parseInt(document.getElementById('modal-player-kit').value) || 0;
+
+            if (!team || !name) return showToast("Please select a team and enter player name.", "error");
+
+            const teamId = getTeamId(team);
+            const newPlayer = { teamId, regNum, name, team, kitNum, status: 'Active' };
+            masterRosters.push(newPlayer);
+            localStorage.setItem('league_master_rosters', JSON.stringify(masterRosters));
+
+            syncPayloadToGoogleSheet('addPlayer', newPlayer, `Player ${name}`);
+
+            document.getElementById('modal-player-name').value = '';
+            closeAddPlayerModal();
+            renderMasterRosterTable();
+            updateMatchTeams();
+        }
+
+        function openSyncModal() { document.getElementById('modal-sync').classList.remove('hidden'); }
+        function closeSyncModal() { document.getElementById('modal-sync').classList.add('hidden'); }
+
+        function saveSyncUrl() {
+            const url = document.getElementById('apps-script-url').value.trim();
+            localStorage.setItem('league_apps_script_url', url);
+            closeSyncModal();
+            showToast("Google Apps Script Web App URL saved!", 'success');
+            pullDataFromGoogleSheets();
+        }
+
+        function openClearDataModal() { document.getElementById('modal-clear-data').classList.remove('hidden'); }
+        function closeClearDataModal() { document.getElementById('modal-clear-data').classList.add('hidden'); }
+
+        function executeWipeAllLocalData() {
+            masterRosters = [];
+            seasonMatchLogs = [];
+            leagueTeams = [];
+
+            localStorage.removeItem('league_master_rosters');
+            localStorage.removeItem('league_season_logs');
+            localStorage.removeItem('league_teams_list');
+
+            closeClearDataModal();
+            populateTeamDropdowns();
+            updateMatchTeams();
+            renderMasterRosterTable();
+            renderSeasonStatsTable();
+
+            const savedUrl = localStorage.getItem('league_apps_script_url');
+            if (savedUrl) {
+                showToast("Cleared local cache! Pulling fresh data from sheet...", "info");
+                pullDataFromGoogleSheets();
+            } else {
+                showToast("Local storage wiped clean!", "info");
+            }
+        }
+
+        function loadSampleDemoData() {
+            masterRosters = [...defaultDemoRosters];
+            leagueTeams = [...defaultDemoTeams];
+            seasonMatchLogs = [...defaultDemoLogs];
+
+            localStorage.setItem('league_master_rosters', JSON.stringify(masterRosters));
+            localStorage.setItem('league_teams_list', JSON.stringify(leagueTeams));
+            localStorage.setItem('league_season_logs', JSON.stringify(seasonMatchLogs));
+
+            populateTeamDropdowns();
+            updateMatchTeams();
+            renderMasterRosterTable();
+            renderSeasonStatsTable();
+            renderGameLogsTable();
+            showToast("Sample demo teams & players loaded!", "success");
+        }
+    </script>
+</body>
+</html>
